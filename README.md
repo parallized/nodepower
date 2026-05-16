@@ -38,6 +38,7 @@ agent 执行检测并上报
 - 自动生成可复制的 SSH 命令
 - SSH 终端 TUI 显示测评进度
 - 浏览器报告页实时刷新
+- 报告完成后可用 MiMo 自动生成总结和各项评分
 - 展示步骤状态、机器摘要、实时日志、原始输出文件
 - 报告链接可直接分享
 
@@ -82,6 +83,20 @@ PORT=3000 PUBLIC_BASE_URL=https://bench.example.com npm start
 
 `PUBLIC_BASE_URL` 必须是 VPS 能访问到的公网地址。不要在生产环境留成 `localhost`，否则复制到 VPS 上的命令无法回传数据。
 
+### MiMo 总结
+
+配置 `MIMO_API_KEY` 后，报告完成时会自动调用 MiMo 生成中文总结、分项评分和建议：
+
+```bash
+MIMO_API_KEY=你的密钥 \
+MIMO_BASE_URL=https://token-plan-cn.xiaomimimo.com/v1 \
+MIMO_MODEL=mimo-v2.5 \
+PUBLIC_BASE_URL=https://bench.example.com \
+npm start
+```
+
+`MiMo-V2.5` 在接口里的 model id 是 `mimo-v2.5`。不要把真实 `MIMO_API_KEY` 写进仓库。未配置时，测评流程照常完成，只会跳过 AI 总结。
+
 ## 实际执行的命令
 
 点击「新建测评」后，页面会生成类似命令：
@@ -111,6 +126,9 @@ environment:
   PORT: "8787"
   PUBLIC_BASE_URL: "https://bench.example.com"
   DATA_DIR: "/app/data"
+  MIMO_BASE_URL: "https://token-plan-cn.xiaomimimo.com/v1"
+  MIMO_MODEL: "mimo-v2.5"
+  # MIMO_API_KEY: "replace-with-your-key"
 ```
 
 ## Nginx 反代
@@ -178,6 +196,7 @@ scripts/
 
 - 当前报告链接是公开可读的，知道 link id 就能打开。
 - 当前版本没有登录、私有报告和自动过期清理。
+- MiMo 密钥只应通过环境变量或部署平台的 Secret 管理，不要提交到 Git。
 - 面向公众开放前建议加创建任务限流、报告过期清理、artifact 大小限制。
 - 第三方测评脚本来自外部仓库，正式运营建议固定版本或自托管镜像。
 - 部分 VPS 没有 `traceroute`，agent 会自动 fallback；都不可用时回程路由会标记为 skipped。

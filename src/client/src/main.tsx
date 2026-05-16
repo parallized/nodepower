@@ -8,6 +8,7 @@ import {
   Clock,
   ExternalLink,
   FileText,
+  Gauge,
   Loader2,
   Play,
   RefreshCw,
@@ -39,6 +40,22 @@ interface Artifact {
   createdAt: string;
 }
 
+interface AiScore {
+  item: string;
+  score: number;
+  reason: string;
+}
+
+interface AiReview {
+  status: "pending" | "complete" | "failed" | "skipped";
+  summary?: string;
+  scores?: AiScore[];
+  recommendations?: string[];
+  model?: string;
+  generatedAt?: string;
+  error?: string;
+}
+
 interface Job {
   id: string;
   status: JobStatus;
@@ -52,6 +69,7 @@ interface Job {
   steps: StepState[];
   artifacts: Artifact[];
   summary: Record<string, unknown>;
+  aiReview?: AiReview;
   recentLog: string[];
   error?: string;
 }
@@ -211,6 +229,7 @@ function ReportEmbed({ jobId }: { jobId: string }) {
       {job ? (
         <div className="embed-grid">
           <StatusPanel job={job} connected={connected} />
+          <AiReviewPanel job={job} />
           <StepsPanel job={job} />
           <ArtifactsPanel job={job} />
           <LogsPanel job={job} />
@@ -250,6 +269,7 @@ function ReportPage({ jobId }: { jobId: string }) {
         <div className="dashboard">
           <aside className="left-rail">
             <StatusPanel job={job} connected={connected} />
+            <AiReviewPanel job={job} />
             <SummaryPanel job={job} />
             <CommandHint job={job} />
           </aside>
@@ -297,7 +317,20 @@ function useJob(jobId: string) {
       setJob(payload.job);
     };
 
-    const events = ["snapshot", "job.created", "agent.hello", "agent.step", "agent.log", "agent.artifact", "agent.summary", "agent.done"];
+    const events = [
+      "snapshot",
+      "job.created",
+      "agent.hello",
+      "agent.step",
+      "agent.log",
+      "agent.artifact",
+      "agent.summary",
+      "agent.done",
+      "ai.pending",
+      "ai.complete",
+      "ai.failed",
+      "ai.skipped"
+    ];
     for (const eventName of events) {
       source.addEventListener(eventName, (event) => {
         const payload = JSON.parse((event as MessageEvent).data) as ServerEvent;
@@ -384,6 +417,67 @@ function SummaryPanel({ job }: { job: Job }) {
           </div>
         ))}
       </dl>
+    </section>
+  );
+}
+
+function AiReviewPanel({ job }: { job: Job }) {
+  const review = job.aiReview;
+
+  return (
+    <section className="panel ai-panel">
+      <div className="panel-title">
+        <Gauge size={18} />
+        {review?.status === "complete" ? "MiMo 总结" : "MiMo 分析"}
+      </div>
+      {!review && (
+        <div className="ai-muted">
+          <Clock size={18} />
+          <span>报告完成后自动生成总结和评分。</span>
+        </div>
+      )}
+      {review?.status === "pending" && (
+        <div className="ai-muted">
+          <Loader2 className="spin" size={18} />
+          <span>正在调用 MiMo 分析测评结果...</span>
+        </div>
+      )}
+      {review?.status === "skipped" && (
+        <div className="ai-muted">
+          <AlertCircle size={18} />
+          <span>未配置 MiMo API Key，已跳过 AI 总结。</span>
+        </div>
+      )}
+      {review?.status === "failed" && <InlineError text={review.error ?? "MiMo 总结生成失败"} />}
+      {review?.status === "complete" && (
+        <div className="ai-review">
+          <p>{review.summary}</p>
+          {review.scores && review.scores.length > 0 && (
+            <div className="score-list">
+              {review.scores.map((score) => (
+                <div className="score-row" key={`${score.item}-${score.score}`}>
+                  <div className="score-head">
+                    <strong>{score.item}</strong>
+                    <span>{score.score}</span>
+                  </div>
+                  <div className="score-track" aria-label={`${score.item} ${score.score} 分`}>
+                    <div style={{ width: `${score.score}%` }} />
+                  </div>
+                  <small>{score.reason}</small>
+                </div>
+              ))}
+            </div>
+          )}
+          {review.recommendations && review.recommendations.length > 0 && (
+            <ul className="recommendations">
+              {review.recommendations.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          )}
+          {review.model && <span className="ai-model">Model: {review.model}</span>}
+        </div>
+      )}
     </section>
   );
 }

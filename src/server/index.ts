@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createMimoReviewerFromEnv } from "./mimo.js";
 import { JobStore } from "./store.js";
 import type { AgentEvent } from "./types.js";
 
@@ -16,7 +17,7 @@ const dataDir = process.env.DATA_DIR ?? join(rootDir, "data");
 const agentPath = join(rootDir, "agent", "nodepower-agent.sh");
 const clientDir = join(rootDir, "dist", "client");
 
-const store = new JobStore(dataDir, publicBaseUrl);
+const store = new JobStore(dataDir, publicBaseUrl, createMimoReviewerFromEnv());
 const app = express();
 
 app.disable("x-powered-by");
@@ -95,6 +96,10 @@ app.post("/api/agent/:id/event", (req, res) => {
   }
 
   res.json({ ok: true, job });
+
+  if (event.type === "done") {
+    store.requestAiReview(req.params.id);
+  }
 });
 
 app.get("/agent.sh", (_req, res) => {

@@ -496,6 +496,104 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.ai-panel {
+  background:
+    linear-gradient(180deg, rgba(56, 189, 248, 0.09), transparent 180px),
+    rgba(17, 24, 39, 0.88);
+}
+
+.ai-muted,
+.score-head {
+  display: flex;
+  align-items: center;
+}
+
+.ai-muted {
+  gap: 10px;
+  color: var(--subtext);
+  line-height: 1.5;
+}
+
+.ai-muted svg {
+  flex: 0 0 auto;
+  color: var(--accent-2);
+}
+
+.ai-review {
+  display: grid;
+  gap: 16px;
+}
+
+.ai-review p {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.65;
+}
+
+.score-list {
+  display: grid;
+  gap: 12px;
+}
+
+.score-row {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.64);
+}
+
+.score-head {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.score-head strong {
+  min-width: 0;
+}
+
+.score-head span {
+  flex: 0 0 auto;
+  color: #bbf7d0;
+  font-family: "Fira Code", monospace;
+  font-weight: 700;
+}
+
+.score-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.18);
+}
+
+.score-track div {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width 240ms ease;
+}
+
+.score-row small {
+  color: var(--subtext);
+  line-height: 1.45;
+}
+
+.recommendations {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--subtext);
+  line-height: 1.5;
+}
+
+.ai-model {
+  color: var(--dim);
+  font-family: "Fira Code", monospace;
+  font-size: 12px;
+}
+
 .compact-panel {
   box-shadow: none;
 }

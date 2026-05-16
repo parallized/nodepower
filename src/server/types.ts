@@ -23,10 +23,27 @@ export interface StepState {
 
 export interface Artifact {
   id: string;
+  step?: StepId;
   label: string;
   kind: "text" | "json";
   bytes: number;
   createdAt: string;
+}
+
+export interface AiScore {
+  item: string;
+  score: number;
+  reason: string;
+}
+
+export interface AiReview {
+  status: "pending" | "complete" | "failed" | "skipped";
+  summary?: string;
+  scores?: AiScore[];
+  recommendations?: string[];
+  model?: string;
+  generatedAt?: string;
+  error?: string;
 }
 
 export interface Job {
@@ -45,6 +62,7 @@ export interface Job {
   steps: StepState[];
   artifacts: Artifact[];
   summary: Record<string, unknown>;
+  aiReview?: AiReview;
   recentLog: string[];
   error?: string;
 }
@@ -62,9 +80,31 @@ export interface PublicJob {
   steps: StepState[];
   artifacts: Artifact[];
   summary: Record<string, unknown>;
+  aiReview?: AiReview;
   recentLog: string[];
   error?: string;
 }
+
+export interface ReviewArtifact {
+  step?: StepId;
+  label: string;
+  kind: "text" | "json";
+  bytes: number;
+  content: string;
+}
+
+export interface ReviewJobInput {
+  id: string;
+  status: JobStatus;
+  hostname?: string;
+  runnerIp?: string;
+  steps: StepState[];
+  summary: Record<string, unknown>;
+  artifacts: ReviewArtifact[];
+  recentLog: string[];
+}
+
+export type AiReviewer = (input: ReviewJobInput) => Promise<AiReview>;
 
 export type AgentEvent =
   | {

@@ -2,10 +2,14 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from "node:path";
 import { nanoid } from "nanoid";
 import type {
+  AiReview,
+  AiReviewer,
   AgentEvent,
   Artifact,
   Job,
   PublicJob,
+  ReviewArtifact,
+  ReviewJobInput,
   ServerEvent,
   StepId,
   StepStatus
@@ -29,7 +33,8 @@ export class JobStore {
 
   constructor(
     private readonly dataDir: string,
-    private readonly publicBaseUrl: string
+    private readonly publicBaseUrl: string,
+    private readonly aiReviewer?: AiReviewer
   ) {
     mkdirSync(this.dataDir, { recursive: true });
     this.loadJobs();
@@ -198,6 +203,7 @@ export class JobStore {
     const id = `${event.step}-${safeLabel || "artifact"}-${nanoid(6)}`;
     const artifact: Artifact = {
       id,
+      step: event.step,
       label: event.label,
       kind,
       bytes: Buffer.byteLength(event.content),
@@ -254,9 +260,104 @@ export class JobStore {
       steps: job.steps,
       artifacts: job.artifacts,
       summary: job.summary,
+      aiReview: job.aiReview,
       recentLog: job.recentLog,
       error: job.error
     };
+  }
+
+  requestAiReview(jobId: string): void {
+    const job = this.jobs.get(jobId);
+    if (!job) {
+      return;
+    }
+
+    if (!this.aiReviewer) {
+      job.aiReview = {
+        status: "skipped",
+        error: "MIMO_API_KEY is not configured"
+      };
+      this.persist(job);
+      this.emit(jobId, "ai.skipped", { reason: "MIMO_API_KEY is not configured" });
+      return;
+    }
+
+    if (job.aiReview?.status === "pending" || job.aiReview?.status === "complete") {
+      return;
+    }
+
+    job.aiReview = { status: "pending" };
+    this.appendLog(job, "[ai] MiMo review started");
+    this.persist(job);
+    this.emit(jobId, "ai.pending");
+
+    void this.runAiReview(jobId);
+  }
+
+  private async runAiReview(jobId: string): Promise<void> {
+    const job = this.jobs.get(jobId);
+    if (!job || !this.aiReviewer) {
+      return;
+    }
+
+    try {
+      const review = await this.aiReviewer(this.buildReviewInput(job));
+      this.setAiReview(jobId, review);
+    } catch (error) {
+      this.setAiReview(jobId, {
+        status: "failed",
+        error: error instanceof Error ? error.message : "MiMo review failed",
+        generatedAt: new Date().toISOString()
+      });
+    }
+  }
+
+  private setAiReview(jobId: string, review: AiReview): void {
+    const job = this.jobs.get(jobId);
+    if (!job) {
+      return;
+    }
+
+    job.updatedAt = new Date().toISOString();
+    job.aiReview = review;
+    if (review.status === "complete") {
+      this.appendLog(job, "[ai] MiMo review completed");
+    }
+    if (review.status === "failed") {
+      this.appendLog(job, `[ai] MiMo review failed: ${review.error ?? "unknown error"}`);
+    }
+    this.persist(job);
+    this.emit(jobId, `ai.${review.status}`, review);
+  }
+
+  private buildReviewInput(job: Job): ReviewJobInput {
+    return {
+      id: job.id,
+      status: job.status,
+      hostname: job.hostname,
+      runnerIp: job.runnerIp,
+      steps: job.steps,
+      summary: job.summary,
+      artifacts: this.readReviewArtifacts(job),
+      recentLog: job.recentLog
+    };
+  }
+
+  private readReviewArtifacts(job: Job): ReviewArtifact[] {
+    return job.artifacts.flatMap((artifact) => {
+      const path = join(this.jobDir(job.id), `${artifact.id}.${artifact.kind === "json" ? "json" : "txt"}`);
+      if (!existsSync(path)) {
+        return [];
+      }
+
+      return [{
+        step: artifact.step,
+        label: artifact.label,
+        kind: artifact.kind,
+        bytes: artifact.bytes,
+        content: readFileSync(path, "utf8")
+      }];
+    });
   }
 
   private persist(job: Job): void {
