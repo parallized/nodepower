@@ -2,9 +2,9 @@
 
 一条命令完成 VPS 测评，并在浏览器里实时看报告。
 
-## 用户怎么用
+## 怎么使用
 
-部署后，用户打开你的测评网站，点「新建测评」，复制页面生成的一行命令。然后 SSH 登录自己的 VPS，把命令粘进去执行。终端会显示测评进度，同时页面会给出一个报告链接，用户在浏览器打开就能实时看 yabs、bench.sh、流媒体解锁、回程路由等结果。
+打开测评网站，点「新建测评」，复制页面生成的一行命令。然后 SSH 登录 VPS，把命令粘进去执行。终端会显示测评进度，同时页面会给出一个报告链接。打开报告链接，就能实时查看 yabs、bench.sh、流媒体解锁、回程路由等结果。
 
 ## 这个项目做什么
 
@@ -80,17 +80,17 @@ PUBLIC_BASE_URL=https://bench.example.com npm start
 PORT=3000 PUBLIC_BASE_URL=https://bench.example.com npm start
 ```
 
-`PUBLIC_BASE_URL` 必须是用户 VPS 能访问到的公网地址。不要在生产环境留成 `localhost`，否则用户复制到 VPS 上的命令无法回传数据。
+`PUBLIC_BASE_URL` 必须是 VPS 能访问到的公网地址。不要在生产环境留成 `localhost`，否则复制到 VPS 上的命令无法回传数据。
 
-## 用户实际看到的命令
+## 实际执行的命令
 
-用户点击「新建测评」后，页面会生成类似命令：
+点击「新建测评」后，页面会生成类似命令：
 
 ```bash
 curl -fsSL https://bench.example.com/agent.sh | bash -s -- https://bench.example.com <JOB_ID> <TOKEN>
 ```
 
-用户 SSH 登录自己的 VPS 后直接执行即可。
+SSH 登录 VPS 后直接执行即可。
 
 报告地址：
 
