@@ -13,5 +13,6 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/agent ./agent
 EXPOSE 8787
 CMD ["node", "dist/src/server/index.js"]
